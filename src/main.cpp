@@ -25,11 +25,13 @@
 
 const int ledPin = 6; // LED pin for connectivity status indicator
 
-char mdnsName[] = "wifi101"; // the MDNS name that the board will respond to
-                             // after WiFi settings have been provisioned
-// Note that the actual MDNS name will have '.local' after
-// the name above, so "wifi101" will be accessible on
-// the MDNS name "wifi101.local".
+char mdnsName[] = "wifi101-XXXXXX"; // the MDNS name that the board will respond to
+                                    // after WiFi settings have been provisioned.
+// The -XXXXXX will be replaced with the last 6 digits of the MAC address.
+// The actual MDNS name will have '.local' after the name above, so
+// "wifi101-123456" will be accessible on the MDNS name "wifi101-123456.local".
+
+byte mac[6];
 
 WiFiServer server(80);
 
@@ -72,6 +74,12 @@ void setup() {
   // connected, make the LED stay on
   digitalWrite(ledPin, HIGH);
 
+  WiFi.macAddress(mac);
+  // Replace the XXXXXX in wifi101-XXXXXX with the last 6 digits of the MAC address.
+  if (strcmp(&mdnsName[7], "-XXXXXX") == 0) {
+    sprintf(&mdnsName[7], "-%.2X%.2X%0.2X", mac[2], mac[1], mac[0]);
+  }
+
   server.begin();
 
   // Setup the MDNS responder to listen to the configured name.
@@ -90,11 +98,19 @@ void setup() {
   printWiFiStatus();
 }
 
+unsigned long lastPrint = 0;
 
 void loop() {
   // Call the update() function on the MDNS responder every loop iteration to
   // make sure it can detect and respond to name requests.
   mdnsResponder.poll();
+
+  unsigned long now = millis();
+  if ((now - lastPrint) > 5000) {
+    lastPrint = now;
+    Serial.println("");
+    printWiFiStatus();
+  }
 
   // listen for incoming clients
   WiFiClient client = server.available();
@@ -167,6 +183,22 @@ void printWiFiStatus() {
   IPAddress ip = WiFi.localIP();
   Serial.print("IP Address: ");
   Serial.println(ip);
+
+  Serial.print("MDNS Name: ");
+  Serial.println(mdnsName);
+
+  Serial.print("Mac: ");
+  Serial.print(mac[5], HEX);
+  Serial.print(":");
+  Serial.print(mac[4], HEX);
+  Serial.print(":");
+  Serial.print(mac[3], HEX);
+  Serial.print(":");
+  Serial.print(mac[2], HEX);
+  Serial.print(":");
+  Serial.print(mac[1], HEX);
+  Serial.print(":");
+  Serial.println(mac[0], HEX);
 
   // print the received signal strength:
   long rssi = WiFi.RSSI();
