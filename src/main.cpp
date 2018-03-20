@@ -1,29 +1,44 @@
 /*
-  WiFi Web Server
+  WiFi Web Server LED control via web of things (e.g., iot.mozilla.org gateway)
+  based on WiFi101.h example "Provisioning_WiFiWebServer.ino"
 
-  A simple web server that shows the value of the analog input pins.
-  using a WiFi shield.
+ A simple web server that lets you control an LED via the web.
+ This sketch will print the IP address of your WiFi device (once connected)
+ to the Serial monitor. From there, you can open that address in a web browser
+ to turn on and off the onboard LED.
 
-  This example is written to configure the WiFi settings using provisioning mode.
-  It also sets up an mDNS server so the IP address of the board doesn't have to
-  be obtained via the serial monitor.
+ You can also connect via the Things Gateway http-on-off-wifi-adapter.
 
-  Circuit:
-   WiFi shield attached
-   Analog inputs attached to pins A0 through A5 (optional)
+ If the IP address of your shield is yourAddress:
+ http://yourAddress/H turns the LED on
+ http://yourAddress/L turns it off
 
-  created 13 July 2010
-  by dlf (Metodo2 srl)
-  modified 31 May 2012
-  by Tom Igoe
+ This example is written for a network using WPA encryption. For
+ WEP or WPA, change the Wifi.begin() call accordingly.
 
-*/
+ Circuit:
+ * WiFi using Microchip (Atmel) WINC1500
+ * LED attached to pin 1 (onboard LED) for SAMW25
+ * LED attached to pin 6 for MKR1000
 
+ created 25 Nov 2012
+ by Tom Igoe
+
+ updates: dh, kg 2018
+ */
+
+#include <Arduino.h>
 #include <SPI.h>
 #include <WiFi101.h>
 #include <WiFiMDNSResponder.h>
 
-const int ledPin = 6; // LED pin for connectivity status indicator
+#ifndef PIN_STATE_HIGH
+#define PIN_STATE_HIGH HIGH
+#endif
+#ifndef PIN_STATE_LOW
+#define PIN_STATE_LOW LOW
+#endif
+
 
 char mdnsName[] = "wifi101-XXXXXX"; // the MDNS name that the board will respond to
                                     // after WiFi settings have been provisioned.
@@ -45,6 +60,7 @@ void setup() {
   Serial.begin(9600);
 
   // check for the presence of the shield:
+  Serial.print("Configuring WiFi shield/module...\n");
   if (WiFi.status() == WL_NO_SHIELD) {
     Serial.println("WiFi shield not present");
     // don't continue:
@@ -52,8 +68,9 @@ void setup() {
   }
 
   // configure the LED pin for output mode
-  pinMode(ledPin, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
 
+  Serial.print("Starting in provisioning mode...\n");
   // Start in provisioning mode:
   //  1) This will try to connect to a previously associated access point.
   //  2) If this fails, an access point named "wifi101-XXXX" will be created, where XXXX
@@ -65,19 +82,19 @@ void setup() {
     // wait while not connected
 
     // blink the led to show an unconnected status
-    digitalWrite(ledPin, HIGH);
+    digitalWrite(LED_BUILTIN, PIN_STATE_HIGH);
     delay(500);
-    digitalWrite(ledPin, LOW);
+    digitalWrite(LED_BUILTIN, PIN_STATE_LOW);
     delay(500);
   }
 
   // connected, make the LED stay on
-  digitalWrite(ledPin, HIGH);
+  digitalWrite(LED_BUILTIN, PIN_STATE_HIGH);
 
   WiFi.macAddress(mac);
   // Replace the XXXXXX in wifi101-XXXXXX with the last 6 digits of the MAC address.
   if (strcmp(&mdnsName[7], "-XXXXXX") == 0) {
-    sprintf(&mdnsName[7], "-%.2X%.2X%0.2X", mac[2], mac[1], mac[0]);
+    sprintf(&mdnsName[7], "-%.2X%.2X%.2X", mac[2], mac[1], mac[0]);
   }
 
   server.begin();
@@ -104,13 +121,6 @@ void loop() {
   // Call the update() function on the MDNS responder every loop iteration to
   // make sure it can detect and respond to name requests.
   mdnsResponder.poll();
-
-  unsigned long now = millis();
-  if ((now - lastPrint) > 5000) {
-    lastPrint = now;
-    Serial.println("");
-    printWiFiStatus();
-  }
 
   // listen for incoming clients
   WiFiClient client = server.available();
@@ -140,8 +150,8 @@ void loop() {
             client.println("<html>");
 
             // the content of the HTTP response follows the header:
-            client.print("Click <a href=\"/H\">here</a> turn the LED on pin 6 on<br>");
-            client.print("Click <a href=\"/L\">here</a> turn the LED on pin 6 off<br>");
+            client.print("Click <a href=\"/H\">here</a> to turn the LED on<br>");
+            client.print("Click <a href=\"/L\">here</a> turn the LED off<br>");
 
             client.println("</html>");
             // break out of the while loop:
@@ -156,10 +166,10 @@ void loop() {
 
         // Check to see if the client request was "GET /H" or "GET /L":
         if (currentLine.endsWith("GET /H")) {
-          digitalWrite(LED_BUILTIN, HIGH);               // GET /H turns the LED on
+          digitalWrite(LED_BUILTIN, PIN_STATE_HIGH);  // GET /H turns the LED on
         }
         if (currentLine.endsWith("GET /L")) {
-          digitalWrite(LED_BUILTIN, LOW);                // GET /L turns the LED off
+          digitalWrite(LED_BUILTIN, PIN_STATE_LOW);  // GET /L turns the LED off
         }
 
       }
@@ -172,7 +182,6 @@ void loop() {
     Serial.println("client disonnected");
   }
 }
-
 
 void printWiFiStatus() {
   // print the SSID of the network you're attached to:
