@@ -1,6 +1,0 @@
-{
-    "terminal.integrated.env.osx": {
-        "PATH": "/Users/kgiori/.platformio/penv/bin:/Users/kgiori/.platformio/penv:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
-        "PLATFORMIO_CALLER": "vscode"
-    }
-}
