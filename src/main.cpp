@@ -122,6 +122,14 @@ void loop() {
   // make sure it can detect and respond to name requests.
   mdnsResponder.poll();
 
+  // print wifi status every 30 seconds
+  unsigned long now = millis();
+  if ((now - lastPrint) > 30000) {
+    lastPrint = now;
+    Serial.println("");
+    printWiFiStatus();
+  }
+
   // listen for incoming clients
   WiFiClient client = server.available();
   if (client) {
