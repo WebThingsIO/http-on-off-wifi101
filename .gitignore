@@ -1,7 +1,5 @@
 .travis.yml
-.pioenvs/
-.piolibdeps/
-.vscode/
+.vscode
 .pioenvs
 .piolibdeps
 .vscode/.browse.c_cpp.db*
